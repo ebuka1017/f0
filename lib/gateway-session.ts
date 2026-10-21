@@ -222,6 +222,20 @@ function transport(
       }
       secret = process.env.AI_GATEWAY_API_KEY
       headers.delete('x-vercel-ai-gateway-team')
+    } else if (credential && 'kind' in credential && credential.kind === 'server') {
+      // A signed-in account's turn on the server key. A free plan may only run its
+      // pinned model, so a tampered request cannot spend more than the plan allows.
+      if (!process.env.AI_GATEWAY_API_KEY || !credential.userId || !credential.loginId ||
+          !Number.isFinite(credential.expiresAt) || credential.expiresAt <= Date.now() + 30_000) {
+        throw new AuthError(503, 'Generation is temporarily unavailable')
+      }
+      const pinned = credential.plan === 'pro' ? null : (process.env.F0_FREE_MODEL || 'anthropic/claude-opus-5.5-fast')
+      if (pinned && method === 'POST' && ['/v3/ai/language-model', '/v4/ai/language-model'].includes(url.pathname) &&
+          headers.get('ai-language-model-id') !== pinned) {
+        throw new AuthError(402, 'Upgrade to Pro to choose a model')
+      }
+      secret = process.env.AI_GATEWAY_API_KEY
+      headers.delete('x-vercel-ai-gateway-team')
     } else {
       assertGatewaySession(credential as SessionData | null)
       const userCredential = credential as SessionData

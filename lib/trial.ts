@@ -23,8 +23,11 @@ export interface GuestSession {
 }
 
 // A worker receives proof of sponsored admission, never the deployment key.
+// `server` is a signed-in (Clerk) account's turn, funded by the same server key
+// under its plan's limits; `trial` is a guest's free prompt.
 export interface TrialCredential {
-  kind: 'trial'
+  kind: 'trial' | 'server'
+  plan?: 'free' | 'pro'
   userId: string
   loginId: string
   expiresAt: number
