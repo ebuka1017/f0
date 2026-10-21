@@ -175,6 +175,10 @@ export default function AccountMenu({ user, team = null, onSignOut, signOutStatu
             <span className="truncate">buy credits</span>
           </a>
         )}
+        <a href="/sites" className={`${rowClassName} ${interactiveRow} text-foreground-secondary`}>
+          <span className="w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">my sites</span>
+        </a>
         <button
           type="button"
           disabled={signOutStatus === 'pending'}
