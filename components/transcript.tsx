@@ -7,6 +7,8 @@ import { ActivityGroup } from './tool-widget'
 import { fastClick } from '../lib/fast-click'
 import { Skeleton } from './ui/skeleton'
 
+import BusinessStarter from './business-starter'
+
 const SUGGESTIONS = [
   'Build my portfolio site as a product designer',
   'Make a link-in-bio page for my socials',
@@ -58,8 +60,10 @@ export default memo(function Transcript({ sessionId, entries, activeTurnId, star
         </div>
       )}
       {entries.length === 0 && (
-        <div className="mx-auto mt-[12vh] max-w-xl [html.chat-url_&]:hidden">
-          <div className="mt-6 space-y-0.5">
+        <div className="mx-auto mt-[8vh] max-w-xl [html.chat-url_&]:hidden">
+          <BusinessStarter onSend={onSend} />
+          <p className="mt-6 px-2 text-xs text-muted-foreground">Or start from an idea</p>
+          <div className="mt-2 space-y-0.5">
             {SUGGESTIONS.map((suggestion) => (
               <button
                 key={suggestion}
