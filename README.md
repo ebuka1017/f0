@@ -11,6 +11,44 @@ f0 is a fork of [vercel-labs/fx0](https://github.com/vercel-labs/fx0), an open-s
 - `migrations/006_sites.sql` adds `fx0_sites`. `/api/sites` creates, lists, renames and deletes your sites, `/api/publish` publishes a chat's current design to a site, and `/s/<slug>` serves it under a strict Content-Security-Policy. `/sites` lists your sites.
 - Not yet: subdomains (`name.yourapp.com`), custom domains, non-Vercel sign-in and billing.
 
+## Phase 2: accounts, Pro, publishing and domains
+
+- **Sign-in** is [Clerk](https://clerk.com) (`proxy.ts` runs `clerkMiddleware`; pages at `/sign-in` and `/sign-up`). A Clerk user maps to `fx0_accounts` through `fx0_account_links` (migration 007): new users get an account named by their Clerk id, and a user whose verified email matches a legacy Sign in with Vercel account is linked to it once, keeping its chats and sites. Without Clerk keys the legacy Vercel OAuth path still works.
+- **Model costs**: with Clerk, no Vercel team pays. Every signed-in turn runs on the server `AI_GATEWAY_API_KEY`, within the account's plan. Guests can still get the optional free trial (`FX0_FREE_PROMPTS=1`).
+- **Plans** (`lib/entitlements.ts`), enforced on the server:
+
+  | | Free | Pro (`pro` entitlement) |
+  |---|---|---|
+  | Prompts per day (UTC) | 10 (`F0_FREE_DAILY_PROMPTS`) | 200 (`F0_PRO_DAILY_PROMPTS`) |
+  | Model | pinned (`F0_FREE_MODEL`) | any model |
+  | Sites | 1 | 20 |
+  | Address | `<slug>.SITES_ROOT_DOMAIN` | plus custom domains |
+
+  `/api/prompt` refuses an over-quota prompt with 402 `upgrade_required`, as do `/api/sites`, `/api/publish` and `/api/domains` at their limits, and the UI opens the paywall. Entitlements come from the RevenueCat REST API v2 (`active_entitlements`), cached for 5 minutes and cleared by the webhook at `/api/webhooks/revenuecat`.
+- **Publish website** in the chat header creates the chat's site on first use (address suggested from the title), publishes the current version, then shows the live URL with copy, open and republish.
+- **Subdomains**: `proxy.ts` rewrites `<slug>.SITES_ROOT_DOMAIN` to the published site with the strict CSP. `/s/<slug>` stays as a fallback.
+- **Custom domains** (Pro): My sites connects a domain through the Vercel Domains API, shows the DNS records and verification status, and routes the verified host to its site.
+- **Onboarding**: the home screen's "Describe your business" form (name, what you do, links) writes a complete first prompt.
+
+### Setup
+
+1. **Neon**: set `DATABASE_URL` and run `npm run db:migrate` (applies 006 and 007).
+2. **Upstash Redis**: set `KV_REST_API_URL` and `KV_REST_API_TOKEN`, and set `SESSION_SECRET`.
+3. **AI Gateway**: in Vercel, open AI Gateway → API keys, create a key and set `AI_GATEWAY_API_KEY`. Consider setting `F0_FREE_MODEL` to a cheaper model.
+4. **Clerk**: create an application and enable Email (and Google, if you want it). Copy `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. In production, add your app domain under Domains, and set the sign-in/up URLs to `/sign-in` and `/sign-up` (Paths).
+5. **RevenueCat**:
+   1. Create a project and add a **Web Billing** app (connect Stripe as RevenueCat asks).
+   2. Create a product such as "f0 Pro monthly" and an entitlement with identifier `pro`, attach the product to it, then put it in a package in the **current offering**.
+   3. Copy the Web Billing **public** API key to `NEXT_PUBLIC_REVENUECAT_WEB_BILLING_API_KEY`.
+   4. Create a v2 **secret** key with Customer information read access and set `REVENUECAT_SECRET_API_KEY`. Set `REVENUECAT_PROJECT_ID` (proj…) and `REVENUECAT_PRO_ENTITLEMENT_ID` (the entitlement's id, entl…).
+   5. Under Integrations → Webhooks, add `APP_URL/api/webhooks/revenuecat` with an Authorization header value, and set the same value as `REVENUECAT_WEBHOOK_AUTH`.
+
+   f0 uses the account id as the RevenueCat app user id.
+6. **Sites domain**: buy a domain separate from the app's (e.g. `f0sites.app`) and set `SITES_ROOT_DOMAIN`.
+   1. In Vercel, go to Project → Settings → Domains and add `*.f0sites.app` (and `f0sites.app`). A wildcard needs Vercel's nameservers: set the domain's nameservers to `ns1.vercel-dns.com` and `ns2.vercel-dns.com` at your registrar.
+   2. The apex redirects to `APP_URL`.
+7. **Custom domains**: create a Vercel access token scoped to the team that owns the project and set `VERCEL_TOKEN`, `VERCEL_PROJECT_ID` and, for a team, `VERCEL_TEAM_ID`. Customers add the records My sites shows: an A record `76.76.21.21` for an apex, or a CNAME `cname.vercel-dns.com` for a subdomain, plus any TXT verification record.
+
 ## Features
 
 - Sign in with Vercel to bill model calls through [AI Gateway](https://vercel.com/docs/ai-gateway) to your own team.
