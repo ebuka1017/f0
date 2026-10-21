@@ -99,6 +99,40 @@ export function createAccountStore(query: AccountQuery) {
       if (!user.guest || !/^guest:[0-9a-f]{32}$/.test(user.id)) throw new AuthError(403, 'Invalid guest identity')
       return reserve(user, sessionId, null)
     },
+    // Server-funded chats (Clerk sign-in) record no billing team.
+    async reserveServerSession(user: AccountUser, sessionId: string): Promise<void> {
+      if (user.guest || user.id.startsWith('guest:')) throw new AuthError(403, 'Sign in to create chats')
+      return reserve(user, sessionId, null)
+    },
+    // The account a Clerk user acts as: its link, else a legacy account with the same
+    // verified email that no Clerk user has claimed, else a new account named by the
+    // Clerk id. The link insert is the only writer, so two racing first requests
+    // agree on one account.
+    async linkClerkAccount(clerk: { clerkUserId: string; email: string | null; emailVerified: boolean; name: string; picture: string | null }): Promise<string> {
+      if (!/^user_[A-Za-z0-9]{1,64}$/.test(clerk.clerkUserId)) throw new AuthError(401, 'Invalid Clerk user')
+      const [linked] = await query('SELECT account_id FROM fx0_account_links WHERE clerk_user_id = $1', [clerk.clerkUserId])
+      let accountId = linked ? String(linked.account_id) : null
+      if (!accountId) {
+        const [legacy] = clerk.email && clerk.emailVerified ? await query(`SELECT a.id FROM fx0_accounts a
+          WHERE lower(a.email) = lower($1) AND a.id NOT LIKE 'guest:%' AND a.id NOT LIKE 'user\\_%'
+            AND NOT EXISTS (SELECT 1 FROM fx0_account_links l WHERE l.account_id = a.id)
+          ORDER BY a.created_at LIMIT 1`, [clerk.email]) : []
+        accountId = legacy ? String(legacy.id) : clerk.clerkUserId
+      }
+      await query(`INSERT INTO fx0_accounts (id, name, email, picture, auth_provider) VALUES ($1, $2, $3, $4, 'clerk')
+        ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, picture = EXCLUDED.picture,
+          auth_provider = 'clerk', updated_at = now()`, [accountId, clerk.name, clerk.email, clerk.picture])
+      if (!linked) {
+        const rows = await query(`INSERT INTO fx0_account_links (clerk_user_id, account_id) VALUES ($1, $2)
+          ON CONFLICT DO NOTHING RETURNING account_id`, [clerk.clerkUserId, accountId])
+        if (!rows.length) {
+          const [winner] = await query('SELECT account_id FROM fx0_account_links WHERE clerk_user_id = $1', [clerk.clerkUserId])
+          if (!winner) throw new AuthError(409, 'Account link conflict')
+          accountId = String(winner.account_id)
+        }
+      }
+      return accountId
+    },
     async claimGuestSessions(guestId: string, userId: string): Promise<void> {
       if (!/^guest:[0-9a-f]{32}$/.test(guestId) || userId.startsWith('guest:')) throw new AuthError(403, 'Invalid guest identity')
       validateIds(userId)
@@ -170,4 +204,8 @@ export async function reserveGuestSession(user: AccountUser, sessionId: string):
 
 export async function claimGuestSessions(guestId: string, userId: string): Promise<void> {
   return withAccountDatabase(query => createAccountStore(query).claimGuestSessions(guestId, userId))
+}
+
+export async function reserveServerSession(user: AccountUser, sessionId: string): Promise<void> {
+  return withAccountDatabase(query => createAccountStore(query).reserveServerSession(user, sessionId))
 }

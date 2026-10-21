@@ -1,5 +1,5 @@
 // @ts-expect-error Node strip-types tests require the source extension.
-import { AuthError, assertSessionOwner, claimGuestSessions, isNewSessionId, ownedSessionPage, reserveSession, reserveGuestSession, validSessionId, type AccountUser } from './accounts.ts'
+import { AuthError, assertSessionOwner, claimGuestSessions, isNewSessionId, ownedSessionPage, reserveSession, reserveGuestSession, reserveServerSession, validSessionId, type AccountUser } from './accounts.ts'
 // @ts-expect-error Node strip-types tests require the source extension.
 import { publicUser, resolveGrantedTeam } from './auth.ts'
 // @ts-expect-error Node strip-types tests require the source extension.
@@ -8,6 +8,8 @@ import { assertSameOrigin } from './auth-protocol.ts'
 import { withRequestSession } from './request-session.ts'
 // @ts-expect-error Node strip-types tests require the source extension.
 import { isAuthenticatedSession } from './secure-session.ts'
+// @ts-expect-error Node strip-types tests require the source extension.
+import { clerkEnabled } from './auth-mode.ts'
 import { getSession, registry } from './session'
 import { bindGatewaySession } from './gateway-session'
 import { readSessionSummaries, sessionExists } from './journal'
@@ -86,7 +88,7 @@ async function ownedSession(request: Request, context: ChatRouteContext, submitt
   if (!validSessionId(id)) throw new AuthError(404, 'Session not found')
   // A chat belongs to its owner; billing follows the team the owner has selected
   // now, so a chat can continue under any team the user switches to.
-  if (!('kind' in context.session)) await resolveGrantedTeam(context.session)
+  if (!('kind' in context.session) && !clerkEnabled()) await resolveGrantedTeam(context.session)
   // Ownership never changes, and a runtime is bound only after this check passed
   // for that user; deletion drops the runtime and logout unbinds it. So a runtime
   // already bound to this user skips the Neon round trip. Anyone else, or a cold
@@ -110,14 +112,23 @@ export function withPromptRoute(body: (request: Request, context: PromptRouteCon
       const existing = await ownedSession(request, context, true)
       return body(request, { ...context, existing, activate: async () => existing })
     }
-    const team = 'kind' in context.session ? null : await resolveGrantedTeam(context.session)
+    const guest = 'kind' in context.session
+    const team = guest || clerkEnabled() ? null : await resolveGrantedTeam(context.session as SessionData)
     return body(request, { ...context, existing: null, activate: async () => {
-      const id = team ? await reserveNewSession(context.user, team.teamId) : await reserveNewGuestSession(context.user)
+      const id = team ? await reserveNewSession(context.user, team.teamId)
+        : guest ? await reserveNewGuestSession(context.user) : await reserveNewServerSession(context.user)
       const host = getSession(id)
       if (!('kind' in context.session)) bindGatewaySession(host, context.session, { submitter: true })
       return { ...context, id, host, created: true }
     } })
   }, { createGuest: true })
+}
+
+// A Clerk user's chat: funded by the server key, so it records no billing team.
+export async function reserveNewServerSession(user: AccountUser, id = crypto.randomUUID()): Promise<string> {
+  if (await sessionExists(id)) throw new AuthError(404, 'Session not found')
+  await reserveServerSession(user, id)
+  return id
 }
 
 async function reserveNewGuestSession(user: AccountUser, id = crypto.randomUUID()): Promise<string> {

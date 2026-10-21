@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server.js'
 import { requireUserSession } from '@/lib/auth'
+import { clerkEnabled, SIGN_IN_PATH } from '@/lib/auth-mode'
 
 export const metadata = { title: 'Sign in · f0' }
 
@@ -25,6 +26,8 @@ function SignInLink({ href }: { href: string }) {
 async function SignIn({ searchParams }: { searchParams: SearchParams }) {
   // Unsealing the session reads the clock, which must happen at request time.
   await connection()
+  // Clerk has its own sign-in page; /login stays as a stable link to it.
+  if (clerkEnabled()) redirect(SIGN_IN_PATH)
   // A signed-out login's grant, or any failure to check it, shows sign-in.
   const [session, params] = await Promise.all([requireUserSession().catch(() => null), searchParams])
   // An expired grant is not a usable session: sending it to / would loop back here.
