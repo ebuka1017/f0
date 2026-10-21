@@ -2,6 +2,8 @@
 // 2026-10-05). The files in ./design-md/ are VoltAgent/awesome-design-md at
 // 13be5c0, unmodified (MIT, see ./design-md/LICENSE). They are analyses of each
 // brand's public website, not files the brands publish themselves.
+// f0 adds four personal-site styles of its own (portfolio, link-in-bio, resume,
+// minimal-blog), listed first; they are Apache-2.0 like the rest of f0.
 
 export interface DesignMdOption {
   id: string
@@ -11,6 +13,10 @@ export interface DesignMdOption {
 
 // Descriptions are the style half of getdesign.md's own one-line summaries.
 export const DESIGN_MD_CATALOG: readonly DesignMdOption[] = [
+  { id: 'portfolio', name: 'Portfolio', description: 'Editorial serif hero, selected-work grid, one warm accent.' },
+  { id: 'link-in-bio', name: 'Link in bio', description: 'Avatar, one-line bio and big thumb-friendly link buttons.' },
+  { id: 'resume', name: 'Resume', description: 'Clean, print-friendly CV with a strict typographic hierarchy.' },
+  { id: 'minimal-blog', name: 'Minimal blog', description: 'Text-first, narrow measure, serif reading type.' },
   { id: 'apple', name: 'Apple', description: 'Premium white space, SF Pro, cinematic imagery.' },
   { id: 'claude', name: 'Claude', description: 'Warm terracotta accent, clean editorial layout.' },
   { id: 'vercel', name: 'Vercel', description: 'Black and white precision, Geist font.' },

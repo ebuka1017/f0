@@ -730,7 +730,7 @@ test('design artifact validation rejects fragments and oversized documents', () 
 })
 
 test('every catalog design.md ships as a file within the size limit', () => {
-  assert.equal(DESIGN_MD_CATALOG.length, 10)
+  assert.equal(DESIGN_MD_CATALOG.length, 14)
   for (const option of DESIGN_MD_CATALOG) {
     const text = readFileSync(new URL(`../lib/design-md/${option.id}.md`, import.meta.url), 'utf8')
     assert.ok(text.trim().length > 0, option.id)

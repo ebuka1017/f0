@@ -8,9 +8,10 @@ import { fastClick } from '../lib/fast-click'
 import { Skeleton } from './ui/skeleton'
 
 const SUGGESTIONS = [
-  'Design a landing page for a CLI coding agent',
-  'Create a polished pricing page',
-  'Design an analytics dashboard',
+  'Build my portfolio site as a product designer',
+  'Make a link-in-bio page for my socials',
+  'Turn my resume into a personal website',
+  'Start a minimal personal blog',
 ]
 
 interface ActivityProps {

@@ -19,7 +19,7 @@ f0 is a fork of [vercel-labs/fx0](https://github.com/vercel-labs/fx0), an open-s
 - Every turn keeps its version of the design. You can reopen any of them and copy or download the HTML.
 - Pick each chat's model, with its reasoning effort and fast mode. New chats start on fast Claude Opus 5.5, or on `FX0_MODEL` when it's set.
 - The agent can search the web and fetch pages for reference.
-- Start from one of ten `design.md` styles, or upload your own. The ten styles, and the one-line descriptions in the picker, come from VoltAgent's [awesome-design-md](https://github.com/VoltAgent/awesome-design-md), which you can browse at [getdesign.md](https://getdesign.md). Thanks to VoltAgent for publishing them.
+- Start from one of four personal-site styles (Portfolio, Link in bio, Resume, Minimal blog) or ten brand `design.md` styles, or upload your own. The ten brand styles, and the one-line descriptions in the picker, come from VoltAgent's [awesome-design-md](https://github.com/VoltAgent/awesome-design-md), which you can browse at [getdesign.md](https://getdesign.md). Thanks to VoltAgent for publishing them.
 - Type a message before you sign in. The draft, images included, waits in the tab for 15 minutes while you sign in.
 - A turn stops after 64 model steps, its subagents' included, which keeps an agent stuck in a loop from running up a bill.
 - In paid-only chats, a text message sent while the agent works steers it, as in the fx CLI. Trial chats run each input as its own turn so free and paid funding stay separate.

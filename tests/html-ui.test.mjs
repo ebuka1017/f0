@@ -113,7 +113,7 @@ test('HTML-only first paint includes SSR profile, history, settings and design s
   assert.match(markup, /Account: Ada/)
   assert.match(markup, /My design/)
   assert.match(markup, /new HTML design/)
-  assert.match(markup, /Design a landing page/)
+  assert.match(markup, /Build my portfolio site/)
   assert.match(markup, /aria-label="Model:/)
   // Effort and Fast live in the closed model popover and are catalog-gated.
   assert.equal(fetch.mock.callCount(), 0)
@@ -122,7 +122,7 @@ test('HTML-only first paint includes SSR profile, history, settings and design s
 test('guest first paint keeps the same panes, model picker and editable composer without private data', (t) => {
   const fetch = t.mock.method(globalThis, 'fetch', () => assert.fail('Guest SSR must not fetch'))
   const markup = renderChat({ guest: true, revision: 2, events: [{ type: 'user', text: 'PRIVATE HISTORY' }] })
-  for (const contract of [/>Sign in</, /new HTML design/, /<h1[^>]*>(?:<span[^>]*>)?Design(?:<\/span>)?(?:<span[^>]*><\/span>)?<\/h1>/, /Design a landing page/, /aria-label="Model:/, /name="prompt"/, /Toggle sidebar/, /Resize conversation and preview/, /<h2[^>]*>f0<\/h2>/]) assert.match(markup, contract)
+  for (const contract of [/>Sign in</, /new HTML design/, /<h1[^>]*>(?:<span[^>]*>)?Design(?:<\/span>)?(?:<span[^>]*><\/span>)?<\/h1>/, /Build my portfolio site/, /aria-label="Model:/, /name="prompt"/, /Toggle sidebar/, /Resize conversation and preview/, /<h2[^>]*>f0<\/h2>/]) assert.match(markup, contract)
   assert.doesNotMatch(markup, /PRIVATE HISTORY|Account: Ada|artifact-frame|Sign in required|disabled=""[^>]*name="prompt"|open session diagnostics|copy, download or publish/)
   assert.equal(fetch.mock.callCount(), 0)
 })
