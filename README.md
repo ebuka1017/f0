@@ -1,10 +1,15 @@
-# fx0
+# f0
 
-fx0 is an open-source, lightweight design agent built with [libfx](https://www.npmjs.com/package/libfx). You describe a page and an agent writes it as one HTML file.
+f0 is a vibe-coding platform for personal websites. You tell the chat who you are, and an agent builds your portfolio, link-in-bio page, resume or blog as one self-contained HTML file that you can publish at `/s/<your-slug>`.
 
-fx0 is also a working example of an app built on libfx. [One `createFxAgent()` call](#durability) gives it the agent loop, streaming, tool calls, retries and durable sessions, and `createFxEngine()` runs each subagent.
+f0 is a fork of [vercel-labs/fx0](https://github.com/vercel-labs/fx0), an open-source design agent built with [libfx](https://www.npmjs.com/package/libfx), and keeps its Apache-2.0 license (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). Most of the architecture notes below come from fx0 and still apply; internal identifiers such as the `fx0_` table prefix, cookie names and `FX0_*` environment variables are kept for compatibility.
 
-Try it at [fx0.vercel.dev](https://fx0.vercel.dev), or clone it and make it your own.
+## Personal sites
+
+- Four personal-site styles in the `design.md` picker: Portfolio, Link in bio, Resume and Minimal blog.
+- The agent is instructed to build mobile-first, accessible pages with SEO and Open Graph tags, using only the details you give it, and to ask for missing ones.
+- `migrations/006_sites.sql` adds `fx0_sites`. `/api/sites` creates, lists, renames and deletes your sites, `/api/publish` publishes a chat's current design to a site, and `/s/<slug>` serves it under a strict Content-Security-Policy. `/sites` lists your sites.
+- Not yet: subdomains (`name.yourapp.com`), custom domains, non-Vercel sign-in and billing.
 
 ## Features
 

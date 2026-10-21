@@ -6,9 +6,9 @@ import { TooltipProvider } from '../components/ui/tooltip'
 import './globals.css'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://fx0.vercel.dev'),
-  title: 'fx0',
-  description: 'A web-native fx design agent running on libfx',
+  metadataBase: new URL(process.env.APP_URL ?? 'https://f0.vercel.app'),
+  title: 'f0',
+  description: 'f0 — vibe-code your own personal website by chatting with an agent',
   openGraph: {
     type: 'website',
   },

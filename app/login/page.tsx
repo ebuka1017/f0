@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { connection } from 'next/server.js'
 import { requireUserSession } from '@/lib/auth'
 
-export const metadata = { title: 'Sign in · fx0' }
+export const metadata = { title: 'Sign in · f0' }
 
 const ERRORS: Record<string, string> = {
   team_access: 'Choose a Vercel team with AI Gateway access to continue.',
@@ -44,8 +44,8 @@ export default function LoginPage({ searchParams }: { searchParams: SearchParams
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background px-6 text-foreground">
       <section className="w-full max-w-sm border border-border p-8" aria-labelledby="login-heading">
-        <p className="mb-8 font-mono text-sm text-foreground-secondary">fx0</p>
-        <h1 id="login-heading" className="text-xl font-medium tracking-tight">Sign in to fx0</h1>
+        <p className="mb-8 font-mono text-sm text-foreground-secondary">f0</p>
+        <h1 id="login-heading" className="text-xl font-medium tracking-tight">Sign in to f0</h1>
         <p className="mt-3 text-sm leading-6 text-foreground-secondary">
           Build with your Vercel account and your team’s AI Gateway access.
         </p>
