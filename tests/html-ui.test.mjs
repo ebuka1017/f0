@@ -122,7 +122,7 @@ test('HTML-only first paint includes SSR profile, history, settings and design s
 test('guest first paint keeps the same panes, model picker and editable composer without private data', (t) => {
   const fetch = t.mock.method(globalThis, 'fetch', () => assert.fail('Guest SSR must not fetch'))
   const markup = renderChat({ guest: true, revision: 2, events: [{ type: 'user', text: 'PRIVATE HISTORY' }] })
-  for (const contract of [/>Sign in</, /new HTML design/, /<h1[^>]*>(?:<span[^>]*>)?Design(?:<\/span>)?(?:<span[^>]*><\/span>)?<\/h1>/, /Design a landing page/, /aria-label="Model:/, /name="prompt"/, /Toggle sidebar/, /Resize conversation and preview/, /<h2[^>]*>fx0<\/h2>/]) assert.match(markup, contract)
+  for (const contract of [/>Sign in</, /new HTML design/, /<h1[^>]*>(?:<span[^>]*>)?Design(?:<\/span>)?(?:<span[^>]*><\/span>)?<\/h1>/, /Design a landing page/, /aria-label="Model:/, /name="prompt"/, /Toggle sidebar/, /Resize conversation and preview/, /<h2[^>]*>f0<\/h2>/]) assert.match(markup, contract)
   assert.doesNotMatch(markup, /PRIVATE HISTORY|Account: Ada|artifact-frame|Sign in required|disabled=""[^>]*name="prompt"|open session diagnostics|copy, download or publish/)
   assert.equal(fetch.mock.callCount(), 0)
 })
@@ -150,17 +150,17 @@ test('a reloaded transcript is anchored at its end until the client takes over',
   assert.match(markup, /class="mx-auto mb-auto w-full max-w-2xl px-4 py-4 sm:px-5"><div[^>]*>[\s\S]*Keep this history/)
   // No design yet: title menu is active, but nothing to export, and no fx0 explainer in the preview.
   assert.match(markup, /<h1[^>]*><button[^>]*aria-haspopup="dialog"[\s\S]*?>[\s\S]*?My design[\s\S]*?<\/button><\/h1>/)
-  assert.doesNotMatch(markup, /copy, download or publish|<h2[^>]*>fx0<\/h2>/)
+  assert.doesNotMatch(markup, /copy, download or publish|<h2[^>]*>f0<\/h2>/)
 })
 
-test('empty artifact preview explains how fx0 works', () => {
+test('empty artifact preview explains how f0 works', () => {
   const markup = renderToStaticMarkup(createElement(PreviewPane, {
     source: { kind: 'design', sessionId: 'design-session', revision: 0 },
     intro: true,
     onClose: () => {},
   }))
-  assert.match(markup, /<h2[^>]*>fx0<\/h2>/)
-  assert.match(markup, /href="https:\/\/github\.com\/vercel-labs\/fx0\/fork"/)
+  assert.match(markup, /<h2[^>]*>f0<\/h2>/)
+  assert.match(markup, /href="https:\/\/github\.com\/ebuka1017\/f0\/fork"/)
   // No design yet, so no frame.
   assert.doesNotMatch(markup, /<iframe|preparing|retry/)
 })
@@ -171,7 +171,7 @@ test('a chat waiting on its first design keeps the preview blank', () => {
     intro: false,
     onClose: () => {},
   }))
-  assert.doesNotMatch(markup, /<h2[^>]*>fx0<\/h2>|<iframe/)
+  assert.doesNotMatch(markup, /<h2[^>]*>f0<\/h2>|<iframe/)
 })
 
 test('new-design controls stay enabled in full and compact layouts', () => {
