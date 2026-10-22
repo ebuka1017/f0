@@ -1,7 +1,8 @@
 import { AuthError } from '../../../lib/accounts'
 import { withUserRoute } from '../../../lib/route-auth'
 import { accountPlan, PlanLimitError, planLimitResponse } from '../../../lib/billing'
-import { createSite, deleteSite, listSites, updateSite } from '../../../lib/sites'
+import { createSite, deleteSite, listSites, readSite, updateSite } from '../../../lib/sites'
+import { VercelDomainError, vercelDomains } from '../../../lib/vercel-domains'
 
 export const maxDuration = 30
 
@@ -37,6 +38,19 @@ export const PATCH = withUserRoute(async (request, { user }) => {
 })
 
 export const DELETE = withUserRoute(async (request, { user }) => {
-  await deleteSite(user.id, new URL(request.url).searchParams.get('id'))
+  const id = new URL(request.url).searchParams.get('id')
+  // Detach a connected custom domain from the Vercel project first, so it can be
+  // reconnected later; if Vercel fails, keep the site so the user can retry.
+  const site = await readSite(user.id, id)
+  if (site.customDomain) {
+    const vercel = vercelDomains()
+    if (vercel.configured) {
+      await vercel.remove(site.customDomain).catch((error) => {
+        if (error instanceof VercelDomainError) throw new AuthError(error.status, `Couldn't disconnect ${site.customDomain}: ${error.message}`)
+        throw error
+      })
+    }
+  }
+  await deleteSite(user.id, id)
   return new Response(null, { status: 204 })
 })

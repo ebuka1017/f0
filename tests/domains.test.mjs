@@ -117,3 +117,10 @@ test('a Clerk user links to a legacy account with the same verified email once',
   assert.ok(!unverified.some(({ text }) => text.includes('lower(a.email)')))
   await assert.rejects(fresh.linkClerkAccount({ clerkUserId: 'guest:1', email: null, emailVerified: false, name: 'x', picture: null }), { status: 401 })
 })
+
+test('routing records follow Vercel apexName for multi-label public suffixes', () => {
+  assert.deepEqual(routingRecord('shop.co.uk', 'shop.co.uk'), { type: 'A', name: '@', value: '76.76.21.21' })
+  assert.deepEqual(routingRecord('www.shop.co.uk', 'shop.co.uk'), { type: 'CNAME', name: 'www', value: 'cname.vercel-dns.com' })
+  assert.deepEqual(routingRecord('example.com'), { type: 'A', name: '@', value: '76.76.21.21' })
+  assert.equal(domainStatus('shop.co.uk', { apexName: 'shop.co.uk', verified: true }, { misconfigured: false }).records[0].type, 'A')
+})
