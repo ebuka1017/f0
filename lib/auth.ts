@@ -11,9 +11,18 @@ import { MIN_GATEWAY_VALIDITY_MS, TOKEN_ENDPOINT, validOAuthTokens, type OAuthTo
 // @ts-expect-error Node strip-types tests require the source extension.
 import { loginRevoked } from './turn-credential.ts'
 
+// @ts-expect-error Node strip-types tests require the source extension.
+import { clerkEnabled } from './auth-mode.ts'
+
 // Pages read identity here. A signed-out login's grant is no session, even
 // replayed from a copy: sign-out records the revocation before it answers.
 export async function requireUserSession(): Promise<SessionData> {
+  if (clerkEnabled()) {
+    const { clerkSessionData } = await import('./clerk-session')
+    const session = await clerkSessionData()
+    if (!session) throw new AuthError()
+    return session
+  }
   const session = await getSession()
   if (!isAuthenticatedSession(session) || await loginRevoked(session.loginId)) throw new AuthError()
   return session

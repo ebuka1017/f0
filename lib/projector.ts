@@ -16,7 +16,7 @@ import { recordGeneration, recordTurn, type TurnRecord } from './history'
 import { readExecutionFunding } from './turn-credential'
 import { effectiveEffort, effectiveFast, effectiveModel, INSTANCE, log, type SessionState } from './session'
 import type { StreamItem } from './events'
-import { TRIAL_MODEL } from './trial-policy'
+import { fundingModel, TRIAL_MODEL, type ModelPin } from './trial-policy'
 
 // The projector copies a chat's libfx stream into fx0's transcript, the
 // StreamItem protocol the page already renders. Any route following a chat runs
@@ -119,7 +119,8 @@ async function readSettings(host: SessionState) {
 }
 
 // A sponsored turn always runs the free model, whatever the chat has selected.
-function turnSettings(host: SessionState, sponsored: boolean): TurnSettings {
+function turnSettings(host: SessionState, sponsored: boolean | ModelPin | null): TurnSettings {
+  if (sponsored && sponsored !== true) return { model: sponsored.model, effort: sponsored.effort, fast: sponsored.fast }
   return sponsored
     ? { model: TRIAL_MODEL, effort: 'low', fast: true }
     : { model: effectiveModel(host), effort: effectiveEffort(host), fast: effectiveFast(host) }
@@ -138,7 +139,7 @@ async function readTurnStart(host: SessionState, id: number, input: string | und
     billingTeamId: credential?.teamId ?? null,
     ...(sponsored ? { sponsored: true as const } : {}),
     prompt: promptText(input),
-    settings: turnSettings(host, sponsored),
+    settings: turnSettings(host, credential && 'kind' in credential ? fundingModel(credential) : false),
   }
 }
 

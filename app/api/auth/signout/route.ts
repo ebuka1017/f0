@@ -5,6 +5,7 @@ import { assertSameOrigin, FLOW_COOKIE_NAME, FLOW_COOKIE_OPTIONS, isLoginId, SES
 import { getSessionForSignOut, sealSessionCookie, selectorCookie } from '@/lib/secure-session'
 import { signedInHintCookie, signOutPendingCookie } from '@/lib/session-cookies'
 import { revokeLoginCredentials } from '@/lib/turn-credential'
+import { clerkEnabled } from '@/lib/auth-mode'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Sign out denied' }, { status: error instanceof AuthError ? error.status : 503 })
   }
+  if (clerkEnabled()) return clerkSignOut()
   const { userId, loginId: sessionLoginId, accessToken } = await getSessionForSignOut(request)
   // Fence every stored credential with one write, independent of chat count.
   // Keep cookies on failure so the user can retry without a false success.
@@ -38,6 +40,27 @@ export async function POST(request: NextRequest) {
   response.cookies.set(FLOW_COOKIE_NAME, '', { ...FLOW_COOKIE_OPTIONS, maxAge: 0 })
   if (cleared) response.headers.append('set-cookie', cleared.setCookie)
   response.headers.append('set-cookie', selectorCookie(null).setCookie)
+  response.headers.append('set-cookie', signedInHintCookie(false, process.env.NODE_ENV === 'production'))
+  response.headers.append('set-cookie', signOutPendingCookie(false, process.env.NODE_ENV === 'production'))
+  return response
+}
+
+// Clerk owns the session: revoke it server-side, fence this login's stored turn
+// credentials, and clear Clerk's cookies so the next request is signed out.
+async function clerkSignOut(): Promise<NextResponse> {
+  try {
+    const [{ clerkSessionData, revokeClerkSession }] = await Promise.all([import('@/lib/clerk-session')])
+    const session = await clerkSessionData()
+    if (session) {
+      await revokeLoginCredentials(session.loginId)
+      after(() => import('@/lib/agent').then(({ cancelUserRuntime }) => cancelUserRuntime(session.userId, session.loginId)))
+    }
+    await revokeClerkSession()
+  } catch {
+    return NextResponse.json({ error: 'Unable to sign out. Retry shortly.' }, { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '5' } })
+  }
+  const response = NextResponse.json({ success: true }, { headers: { 'Cache-Control': 'no-store' } })
+  for (const name of ['__session', '__client_uat']) response.cookies.set(name, name === '__client_uat' ? '0' : '', { path: '/', maxAge: 0 })
   response.headers.append('set-cookie', signedInHintCookie(false, process.env.NODE_ENV === 'production'))
   response.headers.append('set-cookie', signOutPendingCookie(false, process.env.NODE_ENV === 'production'))
   return response

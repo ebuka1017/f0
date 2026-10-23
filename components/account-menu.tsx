@@ -7,6 +7,7 @@ import { fastClick } from '../lib/fast-click'
 import { Button } from './ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Skeleton } from './ui/skeleton'
+import { openUpgrade } from './upgrade'
 
 export interface AccountUser {
   id: string
@@ -175,6 +176,10 @@ export default function AccountMenu({ user, team = null, onSignOut, signOutStatu
             <span className="truncate">buy credits</span>
           </a>
         )}
+        <button type="button" {...fastClick(() => { setOpen(false); openUpgrade() })} className={`${rowClassName} ${interactiveRow} text-foreground-secondary`}>
+          <span className="w-3 shrink-0" aria-hidden="true" />
+          <span className="truncate">plan &amp; upgrade</span>
+        </button>
         <a href="/sites" className={`${rowClassName} ${interactiveRow} text-foreground-secondary`}>
           <span className="w-3 shrink-0" aria-hidden="true" />
           <span className="truncate">my sites</span>

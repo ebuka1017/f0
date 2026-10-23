@@ -15,6 +15,7 @@ import {
   saveTurnCredential,
 } from './turn-credential'
 import type { TrialCredential } from './trial'
+import { fundingModel } from './trial-policy'
 import type { SessionData } from './secure-session'
 import {
   answerActiveQuestion,
@@ -246,7 +247,7 @@ export async function submitPrompt(
   const sender = credential && { ...credential }
   assertPromptFunding(host, funding, submitter)
   const stages = promptStages()
-  const submitted = await journalPrompt(host.id, { author, text, clientId, images, previews }, initial, !!funding)
+  const submitted = await journalPrompt(host.id, { author, text, clientId, images, previews }, initial, funding?.kind === 'trial')
   stages.mark('journal')
   log(host.id, 'prompt:submitted', { id: submitted.id, clientId, imageCount: images?.length ?? 0, idle: submitted.idle })
   const id = submitted.id
@@ -258,7 +259,7 @@ export async function submitPrompt(
     stages.mark('credential')
     const stored = await hydrateSession(host)
     stages.mark('hydrate')
-    const { session } = await chatSession(agent(), host, stored?.libfxSessionId ?? null, agentInstructions(host), id, !!funding)
+    const { session } = await chatSession(agent(), host, stored?.libfxSessionId ?? null, agentInstructions(host), id, fundingModel(funding) ?? false)
     stages.mark('bind')
     // Each attached image, in order, as the design can name it.
     const placeable = assets.length

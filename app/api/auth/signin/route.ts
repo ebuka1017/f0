@@ -2,11 +2,13 @@ import { sealData } from 'iron-session'
 import { NextResponse, type NextRequest } from 'next/server'
 import { randomHandle, pkceChallenge } from '@/lib/auth-crypto'
 import { getSessionOptions } from '@/lib/secure-session'
+import { clerkEnabled, SIGN_IN_PATH } from '@/lib/auth-mode'
 import { logAuthFailure, requestOrigin, SIGN_IN_UNAVAILABLE_PATH, FLOW_COOKIE_NAME, FLOW_COOKIE_OPTIONS, FLOW_TTL_SECONDS, type OAuthFlow } from '@/lib/auth-protocol'
 
 export async function GET(request: NextRequest) {
   // Read first: request data keeps this handler out of the build's prerender.
   const reauth = request.nextUrl.searchParams.get('reauth') === 'true'
+  if (clerkEnabled()) return NextResponse.redirect(new URL(SIGN_IN_PATH, request.nextUrl.origin), 303)
   try {
     const clientId = process.env.VERCEL_OAUTH_CLIENT_ID
     if (!clientId || !process.env.VERCEL_OAUTH_CLIENT_SECRET) throw new Error('OAuth is not configured')

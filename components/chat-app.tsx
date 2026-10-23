@@ -35,6 +35,9 @@ import NewChat from './new-chat'
 // Rarely opened and pulls in Sheet and Tabs; loaded on first open, not with the page.
 const DebugPanel = dynamic(() => import('./debug-panel'), { ssr: false })
 import DesignExport from './design-export'
+import PublishButton from './publish-button'
+import UpgradeDialog from './upgrade-dialog'
+import { openUpgrade } from './upgrade'
 import { Skeleton } from './ui/skeleton'
 import PreviewPane, { type PreviewSource } from './preview-pane'
 import Sidebar from './sidebar'
@@ -1364,6 +1367,13 @@ export default function ChatApp({ account, sidebar, boot, preference, defaultMod
           setSignInOpen(true)
           return
         }
+        // A plan limit (daily prompts) opens the paywall and keeps the draft.
+        if (!user.guest && response.status === 402 && code === 'upgrade_required') {
+          composerRef.current?.restoreDraft({ text: value, images, designMd: designPick })
+          setEntries((current) => current.filter((entry) => entry.type !== 'user' || entry.clientId !== clientId))
+          openUpgrade(reason)
+          return
+        }
         // A refused size or image limit is the user's to act on: show its own words.
         if ((response.status === 413 || response.status === 429) && typeof reason === 'string') throw new Error(reason)
         throw new Error(`prompt failed: ${response.status}${detail ? ` — ${detail.slice(0, 300)}` : ''}`)
@@ -1947,6 +1957,15 @@ export default function ChatApp({ account, sidebar, boot, preference, defaultMod
                 })}
               </div>
 
+              {region((view) => !authBlocked && !view.missing && view.snapshot.transcript.view.artifactRevision > 0 && view.sessionId !== 'draft' && (
+                <PublishButton
+                  sessionId={view.sessionId}
+                  title={sessions.find((session) => session.id === view.sessionId)?.title}
+                  revision={view.snapshot.transcript.view.artifactRevision}
+                  signedIn={isAuthenticated}
+                  onSignIn={openSignIn}
+                />
+              ))}
               {region((view) => !authBlocked && !view.missing && view.snapshot.transcript.view.artifactRevision > 0 && (
                 <DesignExport
                   sessionId={view.sessionId}
@@ -2101,6 +2120,7 @@ export default function ChatApp({ account, sidebar, boot, preference, defaultMod
       <span role="status" aria-live="polite" className="sr-only">
         {announcement}
       </span>
+      <UpgradeDialog />
       <SignInDialog
         open={signInOpen}
         reauthorize={authStatus === 403}

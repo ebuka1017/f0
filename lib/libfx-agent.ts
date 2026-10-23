@@ -7,7 +7,7 @@ import { readExecutionFunding } from './turn-credential'
 import { AuthError } from './accounts.ts'
 import type { SessionData } from './secure-session'
 import type { TrialCredential } from './trial'
-import { TRIAL_MODEL } from './trial-policy'
+import { fundingModel, TRIAL_MODEL, type ModelPin } from './trial-policy'
 import { bindLibfxSession, chatOfLibfxSession, getActiveTurn } from './journal'
 import { createDraftContext } from './draft-context'
 import { closeDraftCall, storedDraftObserver } from './draft-store'
@@ -227,13 +227,14 @@ export function durableAgent(runtime: ChatRuntime, instructions: string): FxAgen
   return g.__fx0LibfxAgent
 }
 
-function chatModel(host: SessionState, sponsored = false) {
-  if (sponsored) return { id: TRIAL_MODEL, effort: 'low' as FxEffort, fast: true }
+function chatModel(host: SessionState, sponsored: boolean | ModelPin | null = false) {
+  if (sponsored === true) return { id: TRIAL_MODEL, effort: 'low' as FxEffort, fast: true }
+  if (sponsored) return { id: sponsored.model, effort: sponsored.effort as FxEffort, fast: sponsored.fast }
   return { id: effectiveModel(host), effort: effectiveEffort(host) as FxEffort, fast: effectiveFast(host) }
 }
 
 // The chat's settings for the turns its next prompts start.
-export function chatSessionOptions(host: SessionState, instructions: string, turnId: number, sponsored = false) {
+export function chatSessionOptions(host: SessionState, instructions: string, turnId: number, sponsored: boolean | ModelPin | null = false) {
   return {
     model: chatModel(host, sponsored),
     instructions,
@@ -248,7 +249,7 @@ export async function chatSession(
   libfxSessionId: string | null,
   instructions: string,
   turnId: number,
-  sponsored = false,
+  sponsored: boolean | ModelPin | null = false,
 ): Promise<{ session: FxSession; libfxSessionId: string }> {
   const id = libfxSessionId ?? await bindLibfxSession(host.id, await agent.newSessionId())
   libfxChats.set(id, host.id)
@@ -276,7 +277,7 @@ export async function runSubagent(
     fetch: chatFetch(async () => chatId, () => turnId, `subagent:${crypto.randomUUID()}`, runtime.watchDraft),
     model: pinned
       ? { id: pinned.model, effort: pinned.effort as FxEffort, fast: pinned.fast }
-      : chatModel(host, funding.ok && 'kind' in funding.credential),
+      : chatModel(host, funding.ok ? fundingModel(funding.credential) : null),
     instructions,
     tools: [
       ...createTools(await runtime.toolHost(chatId, turnId, signal), { allowSubagent: false }).map(tool => ({

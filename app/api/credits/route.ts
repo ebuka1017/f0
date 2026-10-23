@@ -1,5 +1,6 @@
 import { resolveGrantedTeam } from '../../../lib/auth'
 import { withUserRoute } from '../../../lib/route-auth'
+import { clerkEnabled } from '../../../lib/auth-mode'
 
 export const maxDuration = 30
 
@@ -10,6 +11,8 @@ function upstreamStatus(status: number): number {
 }
 
 export const GET = withUserRoute(async (_request, { session }) => {
+  // No team balance with Clerk; usage limits come from /api/billing instead.
+  if (clerkEnabled()) return Response.json({ balance: null, totalUsed: 0, flexible: true })
   const { teamId } = await resolveGrantedTeam(session)
   const response = await fetch(`https://ai-gateway.vercel.sh/v1/credits?teamId=${encodeURIComponent(teamId)}`, {
     headers: { Authorization: `Bearer ${session.accessToken}` },

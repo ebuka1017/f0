@@ -1,5 +1,6 @@
 import { AuthError } from '../../../lib/accounts'
 import { withUserRoute } from '../../../lib/route-auth'
+import { accountPlan, PlanLimitError, planLimitResponse } from '../../../lib/billing'
 import { createSite, deleteSite, listSites, updateSite } from '../../../lib/sites'
 
 export const maxDuration = 30
@@ -17,7 +18,14 @@ export const GET = withUserRoute(async (_request, { user }) => {
 
 export const POST = withUserRoute(async (request, { user }) => {
   const body = await jsonBody(request)
-  const site = await createSite(user.id, { sessionId: body.sessionId ?? body.chatId, slug: body.slug, title: body.title })
+  const limits = await accountPlan(user.id)
+  const sites = await listSites(user.id)
+  if (sites.length >= limits.sites) {
+    return planLimitResponse(new PlanLimitError('upgrade_required', limits.plan === 'free'
+      ? 'The free plan includes 1 site. Upgrade to Pro for more sites and custom domains.'
+      : `Your plan includes ${limits.sites} sites.`, limits.plan))
+  }
+  const site = await createSite(user.id, { sessionId: body.sessionId ?? body.chatId, slug: body.slug, title: body.title }, limits.sites)
   return Response.json({ site }, { status: 201 })
 })
 
