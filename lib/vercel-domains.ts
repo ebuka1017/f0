@@ -29,19 +29,22 @@ export class VercelDomainError extends Error {
 export const VERCEL_A_RECORD = '76.76.21.21'
 export const VERCEL_CNAME = 'cname.vercel-dns.com'
 
-// A domain with exactly two labels (example.com) is an apex; co.uk-style suffixes
-// are treated as subdomains and get a CNAME, which their registrars accept.
-export function isApex(domain: string): boolean {
-  return domain.split('.').length === 2
+// Vercel reports each domain's registrable apex (apexName), which knows about
+// multi-label public suffixes like co.uk. Without it, fall back to treating a
+// two-label domain (example.com) as the apex.
+export function isApex(domain: string, apexName?: string): boolean {
+  return apexName ? domain === apexName : domain.split('.').length === 2
 }
 
-export function routingRecord(domain: string): DnsRecord {
-  return isApex(domain)
-    ? { type: 'A', name: '@', value: VERCEL_A_RECORD }
-    : { type: 'CNAME', name: domain.split('.').slice(0, -2).join('.'), value: VERCEL_CNAME }
+export function routingRecord(domain: string, apexName?: string): DnsRecord {
+  if (isApex(domain, apexName)) return { type: 'A', name: '@', value: VERCEL_A_RECORD }
+  const name = apexName && domain.endsWith(`.${apexName}`)
+    ? domain.slice(0, -(apexName.length + 1))
+    : domain.split('.').slice(0, -2).join('.')
+  return { type: 'CNAME', name, value: VERCEL_CNAME }
 }
 
-interface ProjectDomain { name?: string; verified?: boolean; verification?: { type?: string; domain?: string; value?: string; reason?: string }[] }
+interface ProjectDomain { name?: string; apexName?: string; verified?: boolean; verification?: { type?: string; domain?: string; value?: string; reason?: string }[] }
 
 export function domainStatus(domain: string, project: ProjectDomain, config: { misconfigured?: boolean } | null): DomainStatus {
   const verification = (project.verification ?? [])
@@ -51,7 +54,7 @@ export function domainStatus(domain: string, project: ProjectDomain, config: { m
     domain,
     verified: project.verified === true,
     configured: config ? config.misconfigured === false : false,
-    records: [routingRecord(domain), ...verification],
+    records: [routingRecord(domain, typeof project.apexName === 'string' ? project.apexName : undefined), ...verification],
   }
 }
 

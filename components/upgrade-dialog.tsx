@@ -49,8 +49,15 @@ export default function UpgradeDialog() {
         if (failure instanceof PurchasesError && failure.errorCode === ErrorCode.UserCancelledError) { setStatus('idle'); return }
         throw failure
       }
-      const refreshed = await fetch('/api/billing/refresh', { method: 'POST' }).then((response) => response.json()) as Billing
-      setBilling((current) => current && { ...current, ...refreshed })
+      // Only claim Pro once the server agrees; until then protected routes still see free.
+      const response = await fetch('/api/billing/refresh', { method: 'POST' })
+      const refreshed = response.ok ? await response.json().catch(() => null) as Billing | null : null
+      if (refreshed) setBilling((current) => current && { ...current, ...refreshed })
+      if (refreshed?.plan !== 'pro') {
+        setError('Your payment went through, but Pro isn’t active on your account yet. Give it a minute and refresh the page.')
+        setStatus('idle')
+        return
+      }
       setStatus('done')
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'The purchase did not complete.')
