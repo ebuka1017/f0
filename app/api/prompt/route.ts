@@ -12,6 +12,8 @@ import { TRIAL_MODEL, usesFreePrompts } from '../../../lib/trial-policy'
 import { DEFAULT_MODEL, log } from '../../../lib/session'
 import { validatePromptImages, validatePromptPreviews } from '../../../lib/prompt-images'
 import { DesignAssetLimitError, retryDesignAssetCleanup, storeDesignAssets } from '../../../lib/design-assets'
+import { clerkEnabled, serverFundingEnabled } from '../../../lib/auth-mode'
+import { accountPlan, promptQuota } from '../../../lib/billing'
 import { PROMPT_TEXT_LIMIT_ERROR, PROMPT_TEXT_MAX_BYTES, promptTextBytes } from '../../../lib/prompt-limits'
 
 export const maxDuration = 800
@@ -76,7 +78,24 @@ export const POST = withPromptRoute(async (request, context) => {
   }
   let reservation: TrialReservation | null = null
   let funding: TrialCredential | undefined
-  if (trialEnabled()) {
+  let quota: { key: string; used: number } | null = null
+  // A signed-in account runs on the server key within its plan's daily prompts.
+  // Checked before any reservation or write, so a refusal keeps the draft.
+  if (!guest && clerkEnabled()) {
+    if (!serverFundingEnabled()) return Response.json({ error: 'Generation is not configured on this deployment.' }, { status: 503 })
+    const limits = await accountPlan(user.id)
+    quota = await (await promptQuota()).reserve(user.id, limits.dailyPrompts)
+    if (!quota) {
+      return Response.json({
+        code: 'upgrade_required', plan: limits.plan, upgrade: limits.plan === 'free',
+        error: limits.plan === 'free'
+          ? `You've used today's ${limits.dailyPrompts} free prompts. Upgrade to Pro for more.`
+          : `You've used today's ${limits.dailyPrompts} prompts. They reset at midnight UTC.`,
+      }, { status: 402 })
+    }
+    funding = { kind: 'server', plan: limits.plan, userId: user.id, loginId: session.loginId, expiresAt: Date.now() + 24 * 3600_000 }
+  }
+  if (!funding && trialEnabled()) {
     const options = !existing ? { model: initial.preferredModel, effort: initial.preferredEffort, fast: initial.preferredFast, trialChat: true, unstarted: true }
       : await getSessionGenerationOptions(existing.host)
     const model = (options.unstarted ? initial.preferredModel : options.model) || (process.env.FX0_MODEL ?? DEFAULT_MODEL)
@@ -128,6 +147,7 @@ export const POST = withPromptRoute(async (request, context) => {
     )
   } catch (error) {
     if (reservation) await trialStore().release(reservation).catch(() => console.error('[fx0] free prompt release failed'))
+    if (quota) await (await promptQuota()).release(quota).catch(() => console.error('[f0] prompt quota release failed'))
     if (error instanceof DesignAssetLimitError) return Response.json({ error: error.message }, { status: 429 })
     throw error
   }
@@ -177,6 +197,7 @@ export const POST = withPromptRoute(async (request, context) => {
       ...(created ? { 'x-fx0-session': sessionId } : {}),
       'x-fx0-trial-chat': submitted.trialChat ? '1' : '0',
       ...(reservation ? { 'x-fx0-free-prompts': String(reservation.remaining) } : {}),
+      ...(quota ? { 'x-f0-prompts-used': String(quota.used) } : {}),
       'content-type': 'text/event-stream',
       'cache-control': 'no-store',
       'x-accel-buffering': 'no',

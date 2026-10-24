@@ -3,12 +3,13 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { ThemeProvider } from '../components/theme-provider'
 import { TooltipProvider } from '../components/ui/tooltip'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://fx0.vercel.dev'),
-  title: 'fx0',
-  description: 'A web-native fx design agent running on libfx',
+  metadataBase: new URL(process.env.APP_URL ?? 'https://f0.vercel.app'),
+  title: 'f0',
+  description: 'f0 — vibe-code your own personal website by chatting with an agent',
   openGraph: {
     type: 'website',
   },
@@ -40,9 +41,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body>
         <script dangerouslySetInnerHTML={{ __html: PANES }} />
-        <ThemeProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </ThemeProvider>
+        {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
+          <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+            <ThemeProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </ThemeProvider>
+          </ClerkProvider>
+        ) : (
+          <ThemeProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </ThemeProvider>
+        )}
       </body>
     </html>
   )

@@ -1,0 +1,9 @@
+f0
+Copyright 2026 Isaac Okwuzi
+
+This product is a modified version of fx0 (https://github.com/vercel-labs/fx0),
+licensed under the Apache License, Version 2.0. Modifications: rebranding to f0,
+personal-website prompts and styles, and site publishing.
+
+lib/design-md/ contains files from VoltAgent/awesome-design-md (MIT, see
+lib/design-md/LICENSE).

@@ -90,10 +90,12 @@ function userCredential(session: SessionData): { credential: UserTurnCredential;
 
 export async function saveTrialCredential(chatId: string, credential: TrialCredential, turnId: number): Promise<void> {
   const ttlSeconds = Math.floor((credential.expiresAt - Date.now()) / 1000)
-  if (!trialEnabled() || credential.kind !== 'trial' || !credential.userId || !credential.loginId || !Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+  const allowed = credential.kind === 'trial' ? trialEnabled() : credential.kind === 'server' && !!process.env.AI_GATEWAY_API_KEY
+  if (!allowed || !credential.userId || !credential.loginId || !Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
     throw new Error('Free prompts are temporarily unavailable')
   }
-  await storeCredential(chatId, { kind: 'trial', userId: credential.userId, loginId: credential.loginId, expiresAt: credential.expiresAt }, ttlSeconds, turnId)
+  await storeCredential(chatId, { kind: credential.kind, ...(credential.kind === 'server' ? { plan: credential.plan === 'pro' ? 'pro' : 'free' } : {}),
+    userId: credential.userId, loginId: credential.loginId, expiresAt: credential.expiresAt }, ttlSeconds, turnId)
 }
 
 async function storeCredential(chatId: string, credential: TurnCredential, ttlSeconds: number, turnId?: number): Promise<void> {
@@ -124,9 +126,10 @@ async function decodeCredential(sealed: unknown): Promise<TurnCredential | null>
   if (!sealed) return null
   try {
     const credential = await unsealData<Partial<TurnCredential>>(sealed, { password: password() })
-    if ('kind' in credential && credential.kind === 'trial') {
+    if ('kind' in credential && (credential.kind === 'trial' || credential.kind === 'server')) {
       return credential.userId && credential.loginId && typeof credential.expiresAt === 'number' && Number.isFinite(credential.expiresAt) && credential.expiresAt > Date.now()
-        ? { kind: 'trial', userId: credential.userId, loginId: credential.loginId, expiresAt: credential.expiresAt }
+        ? { kind: credential.kind, ...(credential.kind === 'server' ? { plan: credential.plan === 'pro' ? 'pro' as const : 'free' as const } : {}),
+          userId: credential.userId, loginId: credential.loginId, expiresAt: credential.expiresAt }
         : null
     }
     if (!credential.accessToken || !credential.teamId || !credential.loginId || !credential.userId ||

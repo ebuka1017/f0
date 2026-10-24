@@ -6,7 +6,8 @@ import { buttonVariants } from './ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from './ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-export const REPO_URL = 'https://github.com/vercel-labs/fx0'
+export const REPO_URL = 'https://github.com/ebuka1017/f0'
+export const UPSTREAM_URL = 'https://github.com/vercel-labs/fx0'
 
 function External({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -28,7 +29,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 // The help dialog's intro; the empty preview has its own, about the space it fills.
 const INTRO = (
   <>
-    fx0 shows what you can build with <External href="https://www.npmjs.com/package/libfx">libfx</External>, the agent
+    f0 is built on <External href={UPSTREAM_URL}>fx0</External> and <External href="https://www.npmjs.com/package/libfx">libfx</External>, the agent
     from fx as a JavaScript library. One <code>createFxAgent()</code> call gives you the agent loop, streaming, tool
     calls and durable sessions.
   </>
@@ -63,12 +64,13 @@ export function HowItWorksPanel() {
   const bodyId = useId()
   return (
     <article aria-labelledby="fx0-intro-title" className="text-sm leading-6 text-muted-foreground">
-      <h2 id="fx0-intro-title" className="text-base font-medium text-foreground">fx0</h2>
+      <h2 id="fx0-intro-title" className="text-base font-medium text-foreground">f0</h2>
       <p className="mt-2">
-        fx0 is an <External href={REPO_URL}>open-source design agent</External> built to
-        showcase <External href="https://www.npmjs.com/package/libfx">libfx</External>&apos;s speed and durability.
+        f0 is an <External href={REPO_URL}>open-source</External> vibe-coding tool for personal websites: portfolios,
+        link-in-bio pages, resumes and blogs. It builds on <External href={UPSTREAM_URL}>fx0</External> and
+        runs on <External href="https://www.npmjs.com/package/libfx">libfx</External>.
       </p>
-      <p className="mt-2">Describe a page in the chat and it shows up here as one HTML file.</p>
+      <p className="mt-2">Tell the chat about yourself and your site shows up here, ready to publish.</p>
       <div id={bodyId} hidden={!expanded}>{BODY}</div>
       <div className="mt-6 flex items-center justify-between gap-4">
         <button
@@ -80,7 +82,7 @@ export function HowItWorksPanel() {
         >
           {expanded ? 'read less' : 'read more'}
         </button>
-        <External href={`${REPO_URL}/fork`}>fork fx0</External>
+        <External href={`${REPO_URL}/fork`}>fork f0</External>
       </div>
     </article>
   )
@@ -144,7 +146,7 @@ export default function HowItWorks() {
             rel="noopener noreferrer"
             className={buttonVariants({ className: 'mt-6' })}
           >
-            fork fx0
+            fork f0
           </a>
         </DialogContent>
       </Dialog>

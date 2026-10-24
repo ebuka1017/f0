@@ -2,8 +2,9 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server.js'
 import { requireUserSession } from '@/lib/auth'
+import { clerkEnabled, SIGN_IN_PATH } from '@/lib/auth-mode'
 
-export const metadata = { title: 'Sign in · fx0' }
+export const metadata = { title: 'Sign in · f0' }
 
 const ERRORS: Record<string, string> = {
   team_access: 'Choose a Vercel team with AI Gateway access to continue.',
@@ -25,6 +26,8 @@ function SignInLink({ href }: { href: string }) {
 async function SignIn({ searchParams }: { searchParams: SearchParams }) {
   // Unsealing the session reads the clock, which must happen at request time.
   await connection()
+  // Clerk has its own sign-in page; /login stays as a stable link to it.
+  if (clerkEnabled()) redirect(SIGN_IN_PATH)
   // A signed-out login's grant, or any failure to check it, shows sign-in.
   const [session, params] = await Promise.all([requireUserSession().catch(() => null), searchParams])
   // An expired grant is not a usable session: sending it to / would loop back here.
@@ -44,8 +47,8 @@ export default function LoginPage({ searchParams }: { searchParams: SearchParams
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background px-6 text-foreground">
       <section className="w-full max-w-sm border border-border p-8" aria-labelledby="login-heading">
-        <p className="mb-8 font-mono text-sm text-foreground-secondary">fx0</p>
-        <h1 id="login-heading" className="text-xl font-medium tracking-tight">Sign in to fx0</h1>
+        <p className="mb-8 font-mono text-sm text-foreground-secondary">f0</p>
+        <h1 id="login-heading" className="text-xl font-medium tracking-tight">Sign in to f0</h1>
         <p className="mt-3 text-sm leading-6 text-foreground-secondary">
           Build with your Vercel account and your team’s AI Gateway access.
         </p>

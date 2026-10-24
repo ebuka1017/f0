@@ -8,12 +8,24 @@ import { getGrantFromRequest, getSessionFromRequest, isAuthenticatedSession, sea
 // @ts-expect-error Node strip-types tests require the source extension.
 import { loginRevoked } from './turn-credential.ts'
 
+// @ts-expect-error Node strip-types tests require the source extension.
+import { clerkEnabled } from './auth-mode.ts'
+
 type SessionHandler = (request: Request, session: Partial<SessionData>) => Response | Promise<Response>
 
 // Renewal belongs to the API request that consumes the credential. Pages only
 // read identity, and login/logout own selector changes.
 export function withRequestSession(body: SessionHandler) {
   return async (request: Request): Promise<Response> => {
+    // With Clerk, its middleware has already verified (and refreshed) the session.
+    if (clerkEnabled()) {
+      try {
+        const { clerkSessionData } = await import('./clerk-session')
+        return await body(request, await clerkSessionData() ?? {})
+      } catch {
+        return Response.json({ error: 'Request failed' }, { status: 503, headers: { 'cache-control': 'private, no-store' } })
+      }
+    }
     const cookies: SessionCookie[] = []
     let response: Response
     try {
